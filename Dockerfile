@@ -1,25 +1,27 @@
-# Use a slim Python base image to reduce size
+# Using Python 3.12 slim image
 FROM python:3.12-slim
 
-# Set working directory
+# Setting working directory
 WORKDIR /app
 
-# Copy only requirements 
+# Installing system dependencies
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        ffmpeg \
+        curl \
+        unzip \
+        build-essential \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copying requirements for caching
 COPY requirements.txt .
 
-# Install system dependencies and CPU-only PyTorch 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends ffmpeg curl unzip build-essential && \
-    rm -rf /var/lib/apt/lists/* && \
-    pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir torch==2.9.0 torchaudio==2.0.2 -f https://download.pytorch.org/whl/cpu/torch_stable.html && \
+# Upgrade pip and install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
-COPY app/ ./app
-COPY tests/ ./tests
+COPY . .
 
-# Expose port (adjust if needed)
 EXPOSE 8000
 
-CMD ["python", "app/main.py"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
