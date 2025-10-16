@@ -65,7 +65,7 @@ jobs:
         host: ${{ secrets.SERVER_IP }}
         username: ubuntu
         key: ${{ secrets.SERVER_SSH_KEY }}
-        args: -o StrictHostKeyChecking=no
+        known_hosts: ''
         script: |
           # Define the full image tag used by the build step
           IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
