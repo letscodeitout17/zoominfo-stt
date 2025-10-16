@@ -27,7 +27,7 @@ jobs:
     - name: Run tests
       run: |
         source .venv/bin/activate
-        pytest  # if you have tests
+        pytest
 
     - name: Build Docker image
       run: |
