@@ -27,8 +27,10 @@ jobs:
     - name: Run tests
       run: |
         source .venv/bin/activate
-        pytest tests/ --pyargs
-
+            source .venv/bin/activate
+            export PYTHONPATH=$PYTHONPATH:$(pwd)
+            pytest tests
+            
     - name: Build Docker image
       run: |
         docker build -t zoominfo-stt .
