@@ -9,6 +9,4 @@ pytest-asyncio
 httpx
 pydantic
 python-dotenv
-torch==2.9.0
-torchaudio==2.9.0
 openai-whisper
