@@ -15,5 +15,5 @@ def test_transcribe_audio_runs():
         pytest.skip("Sample audio file missing")
 
     result = transcribe_audio(SAMPLE_AUDIO)
-    assert isinstance(result, str)
+    assert isinstance(result, dict)
     assert len(result) > 0
