@@ -1,21 +1,24 @@
+# Use a slim Python base image to reduce size
 FROM python:3.12-slim
 
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first for caching
+# Copy only requirements 
 COPY requirements.txt .
 
-# Install system dependencies
+# Install system dependencies + Python dependencies
 RUN apt-get update && \
-    apt-get install -y ffmpeg curl unzip && \
+    apt-get install -y --no-install-recommends ffmpeg curl unzip build-essential && \
+    rm -rf /var/lib/apt/lists/* && \
+    pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire app
-COPY . .
+# Copy application code
+COPY app/ ./app
+COPY tests/ ./tests
 
-# Expose port
+# Expose port (adjust if needed)
 EXPOSE 8000
 
-# Run the app with Uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "app/main.py"]
