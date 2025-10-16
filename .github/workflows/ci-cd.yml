@@ -59,24 +59,31 @@ jobs:
         cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:latest
         cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:latest,mode=max
 
-    - name: Deploy to server via SSH
-      uses: appleboy/ssh-action@v0.1.7
+    - name: Start SSH Agent and Load Key
+      uses: webfactory/ssh-agent@v0.9.1 # Use a recent version
       with:
-        host: ${{ secrets.SERVER_IP }}
-        username: ubuntu
-        key: ${{ secrets.SERVER_SSH_KEY }}
-        known_hosts: ''
-        script: |
-          # Define the full image tag used by the build step
-          IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
-          CONTAINER_NAME="zoominfo-stt"
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+        
+    - name: Deploy to server via SSH
+      run: |
+        # Define the variables
+        IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
+        CONTAINER_NAME="zoominfo-stt"
+        SERVER_USER="ubuntu"
+        SERVER_IP="${{ secrets.SERVER_IP }}"
 
-          # 1. Pull the image from the registry
+        # Ensure StrictHostKeyChecking is disabled for CI/CD
+        SSH_OPTIONS="-o StrictHostKeyChecking=no"
+
+        # The deployment script to execute on the remote server
+        DEPLOY_SCRIPT='
+          echo "Starting Deployment..."
           docker pull $IMAGE_TAG
-          
-          # 2. Stop and remove the old container
           docker stop $CONTAINER_NAME || true
           docker rm $CONTAINER_NAME || true
-
-          # 3. Run the new container, using the full image tag
           docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_TAG
+          echo "Deployment complete."
+        '
+
+        # Execute the script on the remote server using the loaded key
+        ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
