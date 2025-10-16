@@ -35,14 +35,14 @@ jobs:
     #   run: |
     #     docker build -t zoominfo-stt .
     - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ghcr.io/${{ github.repository }}:latest
-          cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:latest
-          cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:latest,mode=max
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./Dockerfile
+        push: true
+        tags: ghcr.io/${{ github.repository }}:latest
+        cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:latest
+        cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:latest,mode=max
 
     - name: Deploy to server via SSH
       uses: appleboy/ssh-action@v0.1.7
