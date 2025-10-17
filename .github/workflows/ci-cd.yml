@@ -93,14 +93,22 @@ jobs:
       with:
         ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
         
+    # --- CRITICAL FIX STEP: Create the Wrapper Script ---
+    - name: Create SSH Wrapper Script
+      run: |
+        # Create a shell script that forces the -o flag
+        echo '#!/bin/sh' > ssh_wrapper.sh
+        echo 'exec ssh -o StrictHostKeyChecking=no "$@"' >> ssh_wrapper.sh
+        chmod +x ssh_wrapper.sh
+        
     # 2. Create a Docker context for the remote server (MODIFIED)
     - name: Create Remote Docker Context
       run: |
-        # This command uses the SSH key from the agent
+        # Use the key from the SSH agent
         docker context create remote-server --docker "host=ssh://ubuntu@${{ secrets.SERVER_IP }}"
       env:
-        # CRITICAL FIX: Pass the SSH args directly to the environment of the context creation command
-        DOCKER_HOST_SSH_ARGS: "-o StrictHostKeyChecking=no" 
+        # CRITICAL FIX: Tell the Docker CLI to use our wrapper script for ALL SSH commands
+        DOCKER_SSH: ./ssh_wrapper.sh
 
     # 3. Use the remote context to run deployment commands
     - name: Deploy Container on Remote Server
@@ -121,6 +129,5 @@ jobs:
         echo "Running new container..."
         docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_TAG
       env:
-        # IMPORTANT: Pass the SSH args to the deployment command's environment as well, 
-        # as it will run new SSH connections for the pull/run steps.
-        DOCKER_HOST_SSH_ARGS: "-o StrictHostKeyChecking=no"
+        # IMPORTANT: Pass the DOCKER_SSH wrapper variable to the final deployment step as well
+        DOCKER_SSH: ./ssh_wrapper.sh
