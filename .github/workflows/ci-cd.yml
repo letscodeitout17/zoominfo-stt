@@ -87,14 +87,20 @@ jobs:
 
         # # Execute the script on the remote server using the loaded key
         # ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
+      # 1. Load the Ed25519 key into the SSH Agent
     - name: Start SSH Agent and Load Key
       uses: webfactory/ssh-agent@v0.9.1
       with:
         ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
         
     # 2. Create a Docker context for the remote server
+    #    Uses DOCKER_HOST_SSH_ARGS to bypass Host Key verification failure.
     - name: Create Remote Docker Context
       run: |
+        # CRITICAL FIX 2: Set environment variable to bypass Host Key check
+        export DOCKER_HOST_SSH_ARGS="-o StrictHostKeyChecking=no" 
+        
+        # This command uses the SSH key from the agent to set up the connection
         docker context create remote-server --docker "host=ssh://ubuntu@${{ secrets.SERVER_IP }}"
 
     # 3. Use the remote context to run deployment commands
@@ -103,6 +109,10 @@ jobs:
         IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
         CONTAINER_NAME="zoominfo-stt"
         
+        # Set the variable again for the subsequent pull/run commands
+        export DOCKER_HOST_SSH_ARGS="-o StrictHostKeyChecking=no"
+        
+        # Switch to the remote Docker instance
         docker context use remote-server
         
         echo "Pulling image on remote server..."
@@ -113,4 +123,4 @@ jobs:
         docker rm $CONTAINER_NAME || true
 
         echo "Running new container..."
-        docker run -d -p 8000:8000 --name $CONTAINER_NAME $IM
+        docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_TAG
