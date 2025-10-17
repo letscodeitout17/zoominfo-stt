@@ -5,11 +5,11 @@ from app.transcribe import transcribe_audio
 SAMPLE_AUDIO = os.path.join(os.path.dirname(__file__), "sample.wav")
 
 def test_transcribe_audio_file_exists():
-    """Check that the sample audio file exists."""
+    """Checking that the sample audio file exists."""
     assert os.path.exists(SAMPLE_AUDIO), f"{SAMPLE_AUDIO} not found"
 
 def test_transcribe_audio_runs():
-    """Check that transcribe_audio runs and returns a string."""
+    """Checking that transcribe_audio runs and returns a string."""
 
     if not os.path.exists(SAMPLE_AUDIO):
         pytest.skip("Sample audio file missing")
