@@ -62,9 +62,8 @@ jobs:
     - name: Start SSH Agent and Load Key
       uses: webfactory/ssh-agent@v0.9.1
       with:
-        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
+        ssh-private-key: ${{ secrets.S1ERVER_SSH_KEY }}
         
-    # 2. Deploy using a standard 'run' command (via SSH)
     - name: Deploy to server via SSH
       run: |
         # Define the variables
@@ -73,29 +72,15 @@ jobs:
         SERVER_USER="ubuntu"
         SERVER_IP="${{ secrets.SERVER_IP }}"
 
-        # CRITICAL FIX: Ensure StrictHostKeyChecking is disabled
-        # This is the most reliable way to bypass the Host Key error after key is loaded.
-        SSH_OPTIONS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+        # Ensure StrictHostKeyChecking is disabled for CI/CD
+        SSH_OPTIONS="-o StrictHostKeyChecking=no"
 
-        # The multiline deployment script to execute on the remote server
+        # The deployment script to execute on the remote server
         DEPLOY_SCRIPT='
           echo "Starting Deployment..."
-          
-          # 1. Log in to GHCR on the remote machine (REQUIRED for private images)
-          # The password must be passed in from the GitHub Actions runner environment
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-          
-          # 2. Deployment commands
           docker pull $IMAGE_TAG
           docker stop $CONTAINER_NAME || true
           docker rm $CONTAINER_NAME || true
           docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_TAG
           echo "Deployment complete."
-        '
-
-        # Execute the script on the remote server using the loaded key and bypass options
-        ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
-      env:
-        # Pass the GitHub Token to the step's environment so it can be used in the script
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITHUB_ACTOR: ${{ github.actor }}
+          '
