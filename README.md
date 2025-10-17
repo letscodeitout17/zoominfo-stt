@@ -50,8 +50,8 @@ pip install -r requirements.txt
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-Access the **Swagger UI** at [http://localhost:8000/docs](http://localhost:8000/docs)
-Health check endpoint: [http://localhost:8000/health](http://localhost:8000/health)
+Access the Swagger UI at http://localhost:8000/docs
+Health check endpoint: http://localhost:8000/health
 ---
 
 ## Docker Deployment
@@ -67,7 +67,7 @@ docker build -t zoominfo-stt-repo-img .
 ```bash
 docker run -d -p 8000:8000 zoominfo-stt-repo-img
 ```
-The API will be accessible at [http://localhost:8000](http://localhost:8000)
+The API will be accessible at http://localhost:8000
 ---
 
 ## API Usage
