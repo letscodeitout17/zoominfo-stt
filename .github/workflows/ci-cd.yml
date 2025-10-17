@@ -13,7 +13,7 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4 # Updated to v4 for best practice
+      uses: actions/checkout@v4 
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -59,46 +59,13 @@ jobs:
         cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:latest
         cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:latest,mode=max
 
-    # - name: Start SSH Agent and Load Key
-    #   uses: webfactory/ssh-agent@v0.9.1 # Use a recent version
-    #   with:
-    #     ssh-private-key: ${{ secrets.S1ERVER_SSH_KEY }}
-        
-    # - name: Deploy to server via SSH
-    #   run: |
-    #     # Define the variables
-    #     IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
-    #     CONTAINER_NAME="zoominfo-stt"
-    #     SERVER_USER="ubuntu"
-    #     SERVER_IP="${{ secrets.SERVER_IP }}"
-
-    #     # Ensure StrictHostKeyChecking is disabled for CI/CD
-    #     SSH_OPTIONS="-o StrictHostKeyChecking=no"
-
-    #     # The deployment script to execute on the remote server
-    #     DEPLOY_SCRIPT='
-    #       echo "Starting Deployment..."
-    #       docker pull $IMAGE_TAG
-    #       docker stop $CONTAINER_NAME || true
-        #   docker rm $CONTAINER_NAME || true
-        #   docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_TAG
-        #   echo "Deployment complete."
-        # '
-
-        # # Execute the script on the remote server using the loaded key
-        # ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
-      # 1. Load the Ed25519 key into the SSH Agent
-    - name: Deploy to server via SSH
+    - name: Deploy to server via SSH (Final Attempt)
       uses: appleboy/ssh-action@v0.1.7
       with:
         username: ubuntu
         key: ${{ secrets.SERVER_SSH_KEY }}
         host: ${{ secrets.SERVER_IP }}
-        
-        # CRITICAL FIX: Set known_hosts to empty string AND provide a dummy fingerprint.
-        # This combination tricks the action's logic into bypassing host key verification.
-        known_hosts: ''
-        fingerprint: 'random-string-to-bypass-check' 
+        known_hosts: /dev/null
         
         script: |
           IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
