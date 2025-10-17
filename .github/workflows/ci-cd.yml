@@ -62,7 +62,7 @@ jobs:
     - name: Start SSH Agent and Load Key
       uses: webfactory/ssh-agent@v0.9.1
       with:
-        ssh-private-key: ${{ secrets.S1ERVER_SSH_KEY }}
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
         
     - name: Deploy to server via SSH
       run: |
