@@ -50,8 +50,9 @@ pip install -r requirements.txt
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-Access the Swagger UI at http://localhost:8000/docs
-Health check endpoint: http://localhost:8000/health
+- Access the Swagger UI at http://localhost:8000/docs
+
+- Health check endpoint: http://localhost:8000/health
 ---
 
 ## Docker Deployment
