@@ -59,13 +59,15 @@ jobs:
         cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:latest
         cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:latest,mode=max
 
-    - name: Deploy to server via SSH (Final Attempt)
+    - name: Deploy to server via SSH
       uses: appleboy/ssh-action@v0.1.7
       with:
         username: ubuntu
         key: ${{ secrets.SERVER_SSH_KEY }}
         host: ${{ secrets.SERVER_IP }}
-        known_hosts: /dev/null
+        
+        # This is the most stable bypass that doesn't interfere with key loading
+        known_hosts: ''
         
         script: |
           IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
