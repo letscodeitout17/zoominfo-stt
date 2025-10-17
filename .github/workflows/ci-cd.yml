@@ -59,32 +59,43 @@ jobs:
         cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:latest
         cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:latest,mode=max
 
-    - name: Deploy to server via SSH
-      uses: easingthemes/ssh-deploy@main
-      env:
-        SSH_PRIVATE_KEY: ${{ secrets.SERVER_SSH_KEY }}
-        REMOTE_HOST: ${{ secrets.SERVER_IP }}
-        REMOTE_USER: ubuntu
+    - name: Start SSH Agent and Load Key
+      uses: webfactory/ssh-agent@v0.9.1
+      with:
+        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
         
-        # CRITICAL: This is the script the action will execute on the remote host
-        # The script is formatted as a single string for the action's ARGS.
-        ARGS: |
-          -o StrictHostKeyChecking=no 
-          -p 22
-          "
-          IMAGE_TAG='ghcr.io/${{ github.repository }}:latest'
-          CONTAINER_NAME='zoominfo-stt'
+    # 2. Deploy using a standard 'run' command (via SSH)
+    - name: Deploy to server via SSH
+      run: |
+        # Define the variables
+        IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
+        CONTAINER_NAME="zoominfo-stt"
+        SERVER_USER="ubuntu"
+        SERVER_IP="${{ secrets.SERVER_IP }}"
+
+        # CRITICAL FIX: Ensure StrictHostKeyChecking is disabled
+        # This is the most reliable way to bypass the Host Key error after key is loaded.
+        SSH_OPTIONS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+
+        # The multiline deployment script to execute on the remote server
+        DEPLOY_SCRIPT='
+          echo "Starting Deployment..."
           
-          # Log in to GHCR on the remote machine
+          # 1. Log in to GHCR on the remote machine (REQUIRED for private images)
+          # The password must be passed in from the GitHub Actions runner environment
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
           
-          echo 'Pulling image on remote server...'
-          docker pull \$IMAGE_TAG
-          
-          echo 'Stopping and removing old container...'
-          docker stop \$CONTAINER_NAME || true
-          docker rm \$CONTAINER_NAME || true
+          # 2. Deployment commands
+          docker pull $IMAGE_TAG
+          docker stop $CONTAINER_NAME || true
+          docker rm $CONTAINER_NAME || true
+          docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_TAG
+          echo "Deployment complete."
+        '
 
-          echo 'Running new container...'
-          docker run -d -p 8000:8000 --name \$CONTAINER_NAME \$IMAGE_TAG
-          "
+        # Execute the script on the remote server using the loaded key and bypass options
+        ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
+      env:
+        # Pass the GitHub Token to the step's environment so it can be used in the script
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ACTOR: ${{ github.actor }}
