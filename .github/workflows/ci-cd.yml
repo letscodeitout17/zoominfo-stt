@@ -59,31 +59,58 @@ jobs:
         cache-from: type=registry,ref=ghcr.io/${{ github.repository }}:latest
         cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:latest,mode=max
 
+    # - name: Start SSH Agent and Load Key
+    #   uses: webfactory/ssh-agent@v0.9.1 # Use a recent version
+    #   with:
+    #     ssh-private-key: ${{ secrets.S1ERVER_SSH_KEY }}
+        
+    # - name: Deploy to server via SSH
+    #   run: |
+    #     # Define the variables
+    #     IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
+    #     CONTAINER_NAME="zoominfo-stt"
+    #     SERVER_USER="ubuntu"
+    #     SERVER_IP="${{ secrets.SERVER_IP }}"
+
+    #     # Ensure StrictHostKeyChecking is disabled for CI/CD
+    #     SSH_OPTIONS="-o StrictHostKeyChecking=no"
+
+    #     # The deployment script to execute on the remote server
+    #     DEPLOY_SCRIPT='
+    #       echo "Starting Deployment..."
+    #       docker pull $IMAGE_TAG
+    #       docker stop $CONTAINER_NAME || true
+        #   docker rm $CONTAINER_NAME || true
+        #   docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_TAG
+        #   echo "Deployment complete."
+        # '
+
+        # # Execute the script on the remote server using the loaded key
+        # ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
     - name: Start SSH Agent and Load Key
-      uses: webfactory/ssh-agent@v0.9.1 # Use a recent version
+      uses: webfactory/ssh-agent@v0.9.1
       with:
         ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
         
-    - name: Deploy to server via SSH
+    # 2. Create a Docker context for the remote server
+    - name: Create Remote Docker Context
       run: |
-        # Define the variables
+        docker context create remote-server --docker "host=ssh://ubuntu@${{ secrets.SERVER_IP }}"
+
+    # 3. Use the remote context to run deployment commands
+    - name: Deploy Container on Remote Server
+      run: |
         IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
         CONTAINER_NAME="zoominfo-stt"
-        SERVER_USER="ubuntu"
-        SERVER_IP="${{ secrets.SERVER_IP }}"
+        
+        docker context use remote-server
+        
+        echo "Pulling image on remote server..."
+        docker pull $IMAGE_TAG
+        
+        echo "Stopping and removing old container..."
+        docker stop $CONTAINER_NAME || true
+        docker rm $CONTAINER_NAME || true
 
-        # Ensure StrictHostKeyChecking is disabled for CI/CD
-        SSH_OPTIONS="-o StrictHostKeyChecking=no"
-
-        # The deployment script to execute on the remote server
-        DEPLOY_SCRIPT='
-          echo "Starting Deployment..."
-          docker pull $IMAGE_TAG
-          docker stop $CONTAINER_NAME || true
-          docker rm $CONTAINER_NAME || true
-          docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_TAG
-          echo "Deployment complete."
-        '
-
-        # Execute the script on the remote server using the loaded key
-        ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
+        echo "Running new container..."
+        docker run -d -p 8000:8000 --name $CONTAINER_NAME $IM
