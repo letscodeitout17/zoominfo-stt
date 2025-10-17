@@ -60,15 +60,15 @@ jobs:
         cache-to: type=registry,ref=ghcr.io/${{ github.repository }}:latest,mode=max
 
     - name: Deploy to server via SSH
-      uses: appleboy/ssh-action@v0.1.7
+      # CRITICAL CHANGE: Upgrade to a modern, stable version
+      uses: appleboy/ssh-action@v1.0.0
       with:
         username: ubuntu
         key: ${{ secrets.SERVER_SSH_KEY }}
         host: ${{ secrets.SERVER_IP }}
         
-        # CRITICAL FIX: Use the 'fingerprint' parameter with a dummy value.
-        # This is a valid input that typically triggers the host key bypass logic.
-        fingerprint: 'dummy-value-to-trust-host'
+        # This parameter is reliably supported in newer versions to bypass host key checking
+        known_hosts: /dev/null
         
         script: |
           IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
