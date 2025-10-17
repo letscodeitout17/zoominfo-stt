@@ -88,21 +88,17 @@ jobs:
         # # Execute the script on the remote server using the loaded key
         # ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
       # 1. Load the Ed25519 key into the SSH Agent
-    - name: Start SSH Agent and Load Key
-      uses: webfactory/ssh-agent@v0.9.1
-      with:
-        ssh-private-key: ${{ secrets.SERVER_SSH_KEY }}
-        
-    # --- CRITICAL FIX STEP: Create the Wrapper Script ---
     - name: Deploy to server via SSH (Final Attempt)
       uses: appleboy/ssh-action@v0.1.7
       with:
         username: ubuntu
         key: ${{ secrets.SERVER_SSH_KEY }}
         
-        # CRITICAL: This modified 'host' parameter forces the SSH client to ignore 
-        # the host key check, which is the root cause of the failure.
-        host: ${{ secrets.SERVER_IP }} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+        # CORRECTED: Use only the IP for the host parameter
+        host: ${{ secrets.SERVER_IP }}
+        
+        # CRITICAL FIX: Use the 'args' parameter for the custom SSH options
+        args: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
         
         script: |
           IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
@@ -120,5 +116,4 @@ jobs:
           docker rm $CONTAINER_NAME || true
 
           echo "Running new container..."
-          # Note: The port mapping is added here for the remote run command
           docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_TAG
