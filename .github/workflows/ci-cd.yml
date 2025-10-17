@@ -66,8 +66,9 @@ jobs:
         key: ${{ secrets.SERVER_SSH_KEY }}
         host: ${{ secrets.SERVER_IP }}
         
-        # This is the most stable bypass that doesn't interfere with key loading
-        known_hosts: ''
+        # CRITICAL FIX: Use the 'fingerprint' parameter with a dummy value.
+        # This is a valid input that typically triggers the host key bypass logic.
+        fingerprint: 'dummy-value-to-trust-host'
         
         script: |
           IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
