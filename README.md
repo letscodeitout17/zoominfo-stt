@@ -20,6 +20,7 @@ Before running the project, please ensure the following are installed:
 * Virtual environment support ('venv')
 * Docker for containerized deployment
 * Git (to clone the repository)
+* ffmpeg installed (required by Whisper)
 
 ---
 
@@ -111,5 +112,69 @@ Run all tests using pytest:
 ```bash
 pytest tests/
 ```
+
+* Architecture Overview **
+
+The ZoomInfo Speech-to-Text (STT) API is a lightweight FastAPI-based microservice that accepts audio files, processes them through OpenAI's Whisper model, and returns transcribed text along with detected language. The architecture is modular, testable, and cloud-ready for deployment on platforms like GitHub Actions or AWS Lambda. The system consists of three main layers:
+
+**API Layer (main.py)**: This layer defines REST endpoints for health check and transcription.
+
+**Service Layer (transcribe.py)**: This layer handles audio file processing, temporary file management, and calls the Whisper model.
+
+**Tests (tests/)**: A pytest-based suite that validates API behavior, error handling, and integration between FastAPI and Whisper components.
+
+- **Environment Variables**
+ One can specify a Whisper model (default is "base"):
+
+**Deployment Steps**
+**GitHub Actions (CI/CD)**-
+The repository already includes workflow support for automated testing and deployment.
+If deploying manually on a server:
+
+# On remote server
+git pull origin main
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Start the API
+nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+
+If deploying via Docker:
+
+docker build -t zoominfo-stt .
+docker run -p 8000:8000 zoominfo-stt
+
+**Example Usage**
+- Health Check
+curl -X GET http://127.0.0.1:8000/health
+Expected Output:
+{"status": "ok"}
+
+-**Transcription Example**
+
+Assuming you have an audio file named sample.wav:
+
+curl -X POST "http://127.0.0.1:8000/transcribe" \
+  -F "file=@sample.wav"
+Example Response:
+
+{
+  "text": "Hello, welcome to ZoomInfo speech-to-text demo.",
+  "language": "en"
+}
+
+💡 Notes on Trade-offs and Next Steps
+
+**Trade-offs**
+
+- Using Whisper locally offers flexibility but increases model load time and memory usage.
+- Model is synchronous; for large files, async streaming could improve performance.
+- No persistent storage — each file is processed temporarily and deleted.
+
+**Future improvements**
+
+- Add async streaming transcription for long audio inputs.
+- Enable cloud model hosting to reduce inference latency.
+- Expand test coverage to include integration and edge-case scenarios.
 
 This README covers: prerequisites, local setup, Docker deployment, API usage, and testing.
