@@ -51,9 +51,9 @@ pip install -r requirements.txt
 ```bash
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
-- Access the Swagger UI at http://localhost:8000/docs
+- Access the Swagger UI at [http://localhost:8000/docs](http://13.60.21.218:8000/docs)
 
-- Health check endpoint: http://localhost:8000/health
+- Health check endpoint: [http://localhost:8000/health](http://13.60.21.218:8000/health)
 ---
 
 ## Docker Deployment
@@ -131,22 +131,35 @@ The ZoomInfo Speech-to-Text (STT) API is a lightweight FastAPI-based microservic
 The repository already includes workflow support for automated testing and deployment.
 If deploying manually on a server:
 
-# On remote server
-git pull origin main
-source venv/bin/activate
-pip install -r requirements.txt
+# On own EC2 server
+ssh -i <path to the key>.pem ubuntu@13.60.21.218 
 
 # Start the API
 nohup uvicorn app.main:app --host 0.0.0.0 --port 8000 &
 
 If deploying via Docker:
 
-docker build -t zoominfo-stt .
-docker run -p 8000:8000 zoominfo-stt
+sudo apt update
+sudo apt install -y docker.io net-tools # net-tools is for netstat diagnostics
+sudo usermod -aG docker ubuntu        
+
+# Safely stop and remove container by name
+sudo docker stop your-app-name 2>/dev/null || true
+sudo docker rm your-app-name 2>/dev/null || true
+
+# Run Docker container
+IMAGE_TAG="ghcr.io/<the_username>/<the_image>:latest"
+
+sudo docker run -d \
+    --network host \
+    --name your-app-name \
+    -e HOST=0.0.0.0 \
+    -e PORT=8000 \
+    $IMAGE_TAG
 
 **Example Usage**
 - Health Check
-curl -X GET http://127.0.0.1:8000/health
+curl -X GET http://13.60.21.218:8000/health
 Expected Output:
 {"status": "ok"}
 
@@ -154,7 +167,7 @@ Expected Output:
 
 Assuming you have an audio file named sample.wav:
 
-curl -X POST "http://127.0.0.1:8000/transcribe" \
+curl -X POST "http://13.60.21.218:8000/transcribe" \
   -F "file=@sample.wav"
 Example Response:
 
