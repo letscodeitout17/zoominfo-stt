@@ -66,34 +66,34 @@ jobs:
         
     - name: Deploy to server via SSH
       run: |
-        # Define the variables
+        # Define necessary variables
         IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
         CONTAINER_NAME="zoominfo-stt"
         SERVER_USER="ubuntu"
         SERVER_IP="${{ secrets.SERVER_IP }}"
-
-        # Ensure StrictHostKeyChecking is disabled for CI/CD
-        SSH_OPTIONS="-o StrictHostKeyChecking=no"
-
-        # The deployment script to execute on the remote server
-        DEPLOY_SCRIPT='
+    
+        # Execute deployment commands on the remote EC2 server
+        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP << 'EOF'
           echo "Starting Deployment..."
-
-          # 🚨 CRITICAL FIX: Log in to GHCR on the remote machine
-          # This allows the remote server to pull your private image.
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-          # 2. Deployment commands
-          docker pull $IMAGE_TAG
-          docker stop $CONTAINER_NAME || true
-          docker rm $CONTAINER_NAME || true
-          docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_TAG
-          echo "Deployment complete."
-        '
-
-        # Execute the script on the remote server using the loaded key
-        ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
-      env:
-        # Pass the GitHub Token/Actor to the step's environment for use in the remote script
+    
+          # Pull the latest image using sudo
+          sudo docker pull $IMAGE_TAG
+    
+          # Stop and remove the existing container (if running)
+          sudo docker stop $CONTAINER_NAME 2>/dev/null || true
+          sudo docker rm $CONTAINER_NAME 2>/dev/null || true
+    
+          # Deploy using the robust --network host configuration
+          sudo docker run -d \
+              --network host \
+              --name $CONTAINER_NAME \
+              -e HOST=0.0.0.0 \
+              $IMAGE_TAG
+    
+          echo "Deployment complete. Check http://${SERVER_IP}:8000/health"
+        EOF
+            # Execute the script on the remote server using the loaded key
+            ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
+          env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_ACTOR: ${{ github.actor }}
