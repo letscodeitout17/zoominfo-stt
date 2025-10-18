@@ -66,34 +66,31 @@ jobs:
         
     - name: Deploy to server via SSH
       run: |
-        # Define necessary variables
+        # Define necessary variables for the *local* runner, using correct shell syntax
         IMAGE_TAG="ghcr.io/${{ github.repository }}:latest"
         CONTAINER_NAME="zoominfo-stt"
         SERVER_USER="ubuntu"
         SERVER_IP="${{ secrets.SERVER_IP }}"
-    
+        SSH_OPTIONS="-o StrictHostKeyChecking=no" # Option to bypass known_hosts check
+
         # Execute deployment commands on the remote EC2 server
-        ssh -o StrictHostKeyChecking=no $SERVER_USER@$SERVER_IP << 'EOF'
+        # The variables are expanded *locally* before the script is sent to the remote shell.
+        ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP << EOF
           echo "Starting Deployment..."
-    
-          # Pull the latest image using sudo
+          
+          # Use the injected variable values from the local runner
           sudo docker pull $IMAGE_TAG
-    
+          
           # Stop and remove the existing container (if running)
           sudo docker stop $CONTAINER_NAME 2>/dev/null || true
           sudo docker rm $CONTAINER_NAME 2>/dev/null || true
-    
+          
           # Deploy using the robust --network host configuration
           sudo docker run -d \
               --network host \
               --name $CONTAINER_NAME \
               -e HOST=0.0.0.0 \
               $IMAGE_TAG
-    
+          
           echo "Deployment complete. Check http://${SERVER_IP}:8000/health"
         EOF
-            # Execute the script on the remote server using the loaded key
-            ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
-          env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITHUB_ACTOR: ${{ github.actor }}
