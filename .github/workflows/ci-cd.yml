@@ -78,9 +78,22 @@ jobs:
         # The deployment script to execute on the remote server
         DEPLOY_SCRIPT='
           echo "Starting Deployment..."
+
+          # 🚨 CRITICAL FIX: Log in to GHCR on the remote machine
+          # This allows the remote server to pull your private image.
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+          # 2. Deployment commands
           docker pull $IMAGE_TAG
           docker stop $CONTAINER_NAME || true
           docker rm $CONTAINER_NAME || true
           docker run -d -p 8000:8000 --name $CONTAINER_NAME $IMAGE_TAG
           echo "Deployment complete."
-          '
+        '
+
+        # Execute the script on the remote server using the loaded key
+        ssh $SSH_OPTIONS $SERVER_USER@$SERVER_IP "$DEPLOY_SCRIPT"
+      env:
+        # Pass the GitHub Token/Actor to the step's environment for use in the remote script
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_ACTOR: ${{ github.actor }}
